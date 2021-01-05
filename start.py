@@ -11,7 +11,7 @@ model = ThreeLayerConvNet(reg=0.9)
 solver = Solver(model, data,                
                 lr_decay=0.95,                
                 print_every=10, num_epochs=5, batch_size=2, 
-                update_rule='sgd_momentum',
+                update_rule='rmsprop',
                 optim_config={'learning_rate': 5e-4, 'momentum': 0.9})
 
 solver.train()                 

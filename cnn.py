@@ -1,5 +1,5 @@
 from layers import *
-from fast_layers import *
+# from fast_layers import *
 from layer_utils import *
 
 class ThreeLayerConvNet(object):
@@ -18,7 +18,7 @@ class ThreeLayerConvNet(object):
     weight_scale --权重参数的偏置
     reg --正则化惩罚项的力度
     """
-    def __init__(self, input_dim=(3, 32, 32), num_filters=64, filter_size=3,
+    def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=3,
                  hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
                  dtype=np.float32):
 
@@ -38,12 +38,12 @@ class ThreeLayerConvNet(object):
         # randn函数返回一个或一组样本，具有标准正态分布
         self.params['W1'] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
         # 对b参数，使用零值初始化，b1卷积核的常熟项，F表示b的个数，每一个卷积核对应一个b
-        self.params['b1'] = np.zeros(num_filters)
+        self.params['b1'] = np.zeros((num_filters,1))
 
         # # # randn函数返回一个或一组样本，具有标准正态分布
-        self.params['W0'] = weight_scale * np.random.randn(64, 64, 3, 3)
+        self.params['W0'] = weight_scale * np.random.randn(64, 32, 3, 3)
         # # 对b参数，使用零值初始化，b1卷积核的常熟项，F表示b的个数，每一个卷积核对应一个b
-        self.params['b0'] = np.zeros(64)
+        self.params['b0'] = np.zeros((64,1))
 
 
         # 全连接层，池化后的数据维度为N, int(H*W*filter_num/4) 构造w2.shape(int(H*W*filter_num/4, num_hidden))

@@ -46,7 +46,7 @@ def affine_backward(dout, cache):
     dx = np.reshape(dx, x.shape)                 # (N,d1,...,d_k)   
     x_row = x.reshape(x.shape[0], -1)            # (N,D)    
     dw = np.dot(x_row.T, dout)                   # (D,M)    
-    db = np.sum(dout, axis=0, keepdims=True)     # (1,M)    
+    db = np.sum(dout, axis=0)     # (1,M)
 
     return dx, dw, db
 
@@ -161,25 +161,25 @@ def conv_forward_naive(x, w, b, conv_param):
     out = np.zeros((N, F, H_new, W_new))
 
     # 以w此卷积核窗口大小在输入图片上滑动，卷积求出结果
-    # for i in range(N):       # ith image
-    #     for f in range(F):   # fth filter
-    #         for j in range(H_new):
-    #             for k in range(W_new):
-    #                 #print x_padded[i, :, j*s:HH+j*s, k*s:WW+k*s].shape
-    #                 #print w[f].shape
-    #                 #print b.shape
-    #                 #print np.sum((x_padded[i, :, j*s:HH+j*s, k*s:WW+k*s] * w[f]))
-    #
-    #                 # 将C通道分别进行相乘，和最后的相加操作，再加上一个b值，作为最后的输出
-    #                 out[i, f, j, k] = np.sum(x_padded[i, :, j*s:HH+j*s, k*s:WW+k*s] * w[f]) + b[f]
+    for i in range(N):       # ith image
+        for f in range(F):   # fth filter
+            for j in range(H_new):
+                for k in range(W_new):
+                    #print x_padded[i, :, j*s:HH+j*s, k*s:WW+k*s].shape
+                    #print w[f].shape
+                    #print b.shape
+                    #print np.sum((x_padded[i, :, j*s:HH+j*s, k*s:WW+k*s] * w[f]))
 
-    for i in range(H_new):
-        for j in range(W_new):
-            # 逐一计算输出值
-            x_pad_mask = x_padded[:, :, stride * i:HH + stride * i, stride * j: stride * j + WW]
-            for k in range(F):
-                out[:, k, i, j] = np.sum(x_pad_mask * w[k, :, :, :], axis=(1, 2, 3))
-    out += b[None, :, None, None]  # 加上偏置，这里None添加了维度，使得能够正确相加
+                    # 将C通道分别进行相乘，和最后的相加操作，再加上一个b值，作为最后的输出
+                    out[i, f, j, k] = np.sum(x_padded[i, :, j*s:HH+j*s, k*s:WW+k*s] * w[f]) + b[f]
+
+    # for i in range(H_new):
+    #     for j in range(W_new):
+    #         # 逐一计算输出值
+    #         x_pad_mask = x_padded[:, :, stride * i:HH + stride * i, stride * j: stride * j + WW]
+    #         for k in range(F):
+    #             out[:, k, i, j] = np.sum(x_pad_mask * w[k, :, :, :], axis=(1, 2, 3))
+    # out += b[None, :, None, None]  # 加上偏置，这里None添加了维度，使得能够正确相加
 
 
 

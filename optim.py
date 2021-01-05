@@ -63,7 +63,7 @@ def rmsprop(x, dx, config=None):
     learning_rate = config['learning_rate']    
     epsilon = config['epsilon']    
     cache = decay_rate * cache + (1 - decay_rate) * (dx**2)    
-    x += - (int)(learning_rate * dx / (np.sqrt(cache) + epsilon))
+    x += - learning_rate * dx / (np.sqrt(cache) + epsilon)
     config['cache'] = cache    
     next_x = x    
 
