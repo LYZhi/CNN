@@ -77,6 +77,7 @@ def conv_relu_pool_forward(x, w, b, conv_param, pool_param):
 
   # 卷积层的前向传播--y = w * x + b
   # conv_param 卷集参数
+  # a1, conv_cache1 = conv_forward_naive(x, w, b, conv_param)
   a, conv_cache = conv_forward_naive(x, w, b, conv_param)
 
 

@@ -6,13 +6,13 @@ from solver import Solver
 # 第一步数据读取
 data = get_CIFAR10_data()
 # 第二步：建立model用于进行loss和grads的计算 对象——self
-model = ThreeLayerConvNet(reg=0.9)
+model = ThreeLayerConvNet(reg=0.01,dropout=0.5)
 # 第三步：使用batch_size进行参数的更新
 solver = Solver(model, data,                
                 lr_decay=0.95,                
                 print_every=10, num_epochs=5, batch_size=2, 
-                update_rule='rmsprop',
-                optim_config={'learning_rate': 5e-4, 'momentum': 0.9})
+                update_rule='adam',
+                optim_config={'learning_rate': 2e-4, 'momentum': 0.9})
 
 solver.train()                 
 

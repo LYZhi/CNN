@@ -18,8 +18,8 @@ class ThreeLayerConvNet(object):
     weight_scale --权重参数的偏置
     reg --正则化惩罚项的力度
     """
-    def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=3,
-                 hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
+    def __init__(self, input_dim=(3, 32, 32), num_filters=64, filter_size=3,
+                 hidden_dim=100, num_classes=10, dropout=0.5,weight_scale=1e-3, reg=0.0,seed=None,use_batchnorm=True,
                  dtype=np.float32):
 
         # 第二步：构造初始化的self.params用于存放权重参数，初始化权重参数w1,b1, w2, b2
@@ -30,6 +30,8 @@ class ThreeLayerConvNet(object):
         self.reg = reg
         # 数据类型
         self.dtype = dtype
+        self.use_dropout = dropout > 0
+        self.use_batchnorm = use_batchnorm
 
         # Initialize weights and biases
         # 输入样本的维度
@@ -41,13 +43,14 @@ class ThreeLayerConvNet(object):
         self.params['b1'] = np.zeros((num_filters,1))
 
         # # # randn函数返回一个或一组样本，具有标准正态分布
-        self.params['W0'] = weight_scale * np.random.randn(64, 32, 3, 3)
+        self.params['W0'] = weight_scale * np.random.randn(64, 64, 3, 3)
         # # 对b参数，使用零值初始化，b1卷积核的常熟项，F表示b的个数，每一个卷积核对应一个b
         self.params['b0'] = np.zeros((64,1))
 
 
+
         # 全连接层，池化后的数据维度为N, int(H*W*filter_num/4) 构造w2.shape(int(H*W*filter_num/4, num_hidden))
-        self.params['W2'] = weight_scale * np.random.randn((int)(64*8*8), hidden_dim)
+        self.params['W2'] = weight_scale * np.random.randn((int)(64*16*16), hidden_dim)
         # 全连接层b的参数为num_hidden隐藏层的个数
         self.params['b2'] = np.zeros(hidden_dim)
         # 全连接层w3：用于进行得分值得计算，维度为(num_hidden, num_classes)
@@ -58,6 +61,21 @@ class ThreeLayerConvNet(object):
         # 将参数转换为np.float32
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
+
+        self.dropout_param = {}
+        if self.use_dropout:
+            self.dropout_param = {'mode': 'train', 'p': dropout}
+            if seed is not None:
+                self.dropout_param['seed'] = seed
+
+            # With batch normalization we need to keep track of running means and
+            # variances, so we need to pass a special bn_param object to each batch
+            # normalization layer. You should pass self.bn_params[0] to the forward pass
+            # of the first batch normalization layer, self.bn_params[1] to the forward
+            # pass of the second batch normalization layer, etc.
+        self.bn_params = []
+        if self.use_batchnorm:
+            self.bn_params = [{'mode': 'train'}]
 
 
     def loss(self, X, y=None):
@@ -85,12 +103,22 @@ class ThreeLayerConvNet(object):
 
         # compute the forward pass
         # 进行卷积，激活层和pool池化层的前向传播，保存cache用于后续的反向传播
-        a1, cache1 = conv_relu_pool_forward(X, W1, b1, conv_param1, pool_param)
+        a, conv_cache = conv_forward_naive(X, W1, b1, conv_param1)
+        s, relu_cache = relu_forward(a)
+        cache = (conv_cache, relu_cache)
+        a1 =s
+        cache1 = cache
+
+        # a1, cache1 = conv_relu_pool_forward(X, W1, b1, conv_param1, pool_param)
         a0, cache0 = conv_relu_pool_forward(a1, W0, b0, conv_param0, pool_param)
         # 进行全连接层的前向传播，线性变化和relu层
         a2, cache2 = affine_relu_forward(a0, W2, b2)
+
+        drop_out, drop_cache = dropout_forward(a2, self.dropout_param)
+
+
         # 进行全连接层的前向传播，用于计算各个类别的得分值
-        scores, cache3 = affine_forward(a2, W3, b3)
+        scores, cache3 = affine_forward(drop_out, W3, b3)
 
         # 如果没有标签值y，返回得分
         if y is None:
@@ -101,14 +129,29 @@ class ThreeLayerConvNet(object):
         # 第五步：计算反向传播的结果
         # 计算data的损失值loss，以及反向传输softmax的结果，即dloss/dprob的求导结果
         data_loss, dscores = softmax_loss(scores, y)
+
+
         # 进行第二层全连接的反向传播
         da2, dW3, db3 = affine_backward(dscores, cache3)
+
+        dx_drop = dropout_backward(da2, drop_cache)
+
         # 进行第一层全连接层的反向传播，包括relu层和线性变换层
-        da0, dW2, db2 = affine_relu_backward(da2, cache2)
+        da0, dW2, db2 = affine_relu_backward(dx_drop, cache2)
         # 进行卷积层的反向传播，包括pool, relu, conv卷积层的反向传播，输出梯度值
         da1, dW0, db0 = conv_relu_pool_backward(da0, cache0)
         # dX, dW1, db1 = conv_relu_pool_backward(da1, cache1)
-        dX, dW1, db1 = conv_relu_pool_backward(da1, cache1)
+        # dX, dW1, db1 = conv_relu_pool_backward(da1, cache1)
+
+        # 获得三个层的输入参数
+        # conv_cache, relu_cache, pool_cache = cache
+        # 进行池化层的反向传播，构造最大值的[[false, false], [false, True]]列表，最大值部分不变，其他部位使用0值填充
+        # ds = max_pool_backward_naive(da1, pool_cache)
+        # 进行relu层的反向传播，dout[x<0] = 0, 将输入小于0的dout置为0
+        da = relu_backward(da1, relu_cache)
+        # 卷积层的反向传播，对dx, dw, db进行反向传播，dx[i, :, j*s] += dout * w[f], dw[f] += windows * dout, db[f] += dout
+        dX, dW1, db1 = conv_backward_naive(da, conv_cache)
+
 
         # Add regularization
         # 第六步：加上正则化的损失值，同时梯度dw加上w正则化的求导值

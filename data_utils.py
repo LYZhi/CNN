@@ -57,7 +57,7 @@ def load_CIFAR10(ROOT):
 
 
 # 加载数据集
-def get_CIFAR10_data(num_training=50, num_validation=5, num_test=50):
+def get_CIFAR10_data(num_training=200, num_validation=50, num_test=200):
     """
     Load the CIFAR-10 dataset from disk and perform preprocessing to prepare
     it for classifiers. These are the same steps as we used for the SVM, but
